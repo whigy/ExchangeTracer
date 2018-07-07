@@ -1,0 +1,4 @@
+URL=http://srh.bankofchina.com/search/whpj/search.jsp
+CURRENCY=Èðµä¿ËÀÊ
+START=YESTERDAY
+END=TODAY
