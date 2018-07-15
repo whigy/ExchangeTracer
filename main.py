@@ -77,7 +77,11 @@ def get_exchange(url, currency, startTime=None, endTime=None):
 
     def turnPage():
         browser.find_element_by_class_name("turn_page").find_elements_by_tag_name("li")[-1].click()
+<<<<<<< HEAD
         time.sleep(0.5)
+=======
+        time.sleep(0.3)
+>>>>>>> d08532ad289ac4b9057d3d5bf5541fa3dc25837a
 
     def findRows():
         def parseRow(row):
