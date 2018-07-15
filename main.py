@@ -32,7 +32,7 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     browser = openBrowser(url)
 
     logging.info("Parsing BOC Webpage...")
-    time.sleep(8)
+    time.sleep(4)
 
     ########################## Search ################################
     # Send dates
@@ -43,7 +43,7 @@ def get_exchange(url, currency, startTime=None, endTime=None):
             "//select[@id='calendarMonth']/option[@value='{:d}']".format(int(d[1]) - 1)).click()
         browser.find_element_by_xpath("//table[@id='calendarTable']/tbody/tr/td[text()={:d}]".format(int(d[2]))).click()
 
-    # end time
+    # End time
     if endTime == None:
         browser.find_element_by_name("nothing").click()
         browser.find_element_by_name("calendarToday").click()
@@ -60,7 +60,7 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     clickCalendar(startTime)
 
     # Send currency
-    browser.find_element_by_xpath("//select[@id='pjname']/option[text()='{:s}']".format(currency)).click()
+    browser.find_element_by_xpath("//select[@id='pjname']/option[@value='{:s}']".format(currency)).click()
     browser.find_elements_by_class_name("search_btn")[1].click()
 
     logging.info("Searching {:s} from {:s} to {:s}.....".format(currency, startTime, endTime))
@@ -75,19 +75,19 @@ def get_exchange(url, currency, startTime=None, endTime=None):
         logging.info("Page size regarded as less then 1.")
         pageSize = 1
 
-    def turnPage():
-        browser.find_element_by_class_name("turn_page").find_elements_by_tag_name("li")[-1].click()
-<<<<<<< HEAD
-        time.sleep(0.5)
-=======
-        time.sleep(0.3)
->>>>>>> d08532ad289ac4b9057d3d5bf5541fa3dc25837a
+    def turnPage(pageSize):
+        curr = browser.find_element_by_class_name("turn_page").find_element_by_class_name("current").text
+        if int(curr) < pageSize:
+            browser.find_element_by_class_name("turn_page").find_elements_by_tag_name("li")[-1].click()
+            time.sleep(0.3)
+            return True
+        else:
+            return False
 
     def findRows():
         def parseRow(row):
             tds = row.find_elements_by_tag_name("td")
-            strList = [td.text for td in tds[1:-1]]
-            strList += tds[-1].text.split(" ")
+            strList = [tds[3].text] + tds[7].text.split(" ") #3: 现汇卖出价; 7: 发布时间
             return ','.join(strList) + '\n'
 
         rows = browser \
@@ -101,14 +101,19 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     if pageSize == 1:
         allRows = findRows()
     else:
-        for i in range(pageSize):
+        tag = True
+        while(tag):
             allRows += findRows()
-            turnPage()
+            tag = turnPage(pageSize)
 
     logging.info("Collected {:d} rows data!".format(len(allRows)))
 
-    header = "in_exc,in_cash,out_exc,out_cash,middle,boc_middle,date,time\n"
-
+    header = "out_exc,date,time\n"
+    
+    # MakeDir 'meta'
+    directory = 'meta'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     filename = 'meta/{:s}_meta_{:s}.csv'.format(currency, datetime.now().strftime("%Y%m%d_%H%M%S"))
     with open(filename, 'w') as csvfile:
         csvfile.writelines(header)
@@ -119,6 +124,11 @@ def get_exchange(url, currency, startTime=None, endTime=None):
 
 
 def calculateData(filename, output="output/output.txt"):
+    # MakeDir 'meta'
+    directory = 'output'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
     with open(filename, 'rb') as file:
         df = pd.read_csv(file)
 
