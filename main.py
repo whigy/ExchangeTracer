@@ -87,7 +87,7 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     def findRows():
         def parseRow(row):
             tds = row.find_elements_by_tag_name("td")
-            strList = [tds[3].text] + tds[7].text.split(" ") #3: 现汇卖出价; 7: 发布时间
+            strList = [tds[3].text] + tds[6].text.split(" ") #3: 现汇卖出价; 6: 发布时间
             return ','.join(strList) + '\n'
 
         rows = browser \
@@ -124,7 +124,7 @@ def get_exchange(url, currency, startTime=None, endTime=None):
 
 
 def calculateData(filename, output="output/output.txt"):
-    # MakeDir 'meta'
+    # MakeDir 'output'
     directory = 'output'
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -159,6 +159,7 @@ def calculateData(filename, output="output/output.txt"):
     updated["date"] = updated["index"].apply(lambda x: x.replace(".", '/'))
 
     updated[["date", "opening", "max", "min", "closing"]]\
+		.sort_values("date")\
         .to_csv("output/output.txt", index=False, header=False, sep=" ")
 
 def readConfig():
