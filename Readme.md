@@ -11,7 +11,7 @@ URL=http://srh.bankofchina.com/search/whpj/search.jsp
 CURRENCY=1320
 START=YESTERDAY
 END=TODAY
-'''
+```
 All the fields are mandatory.
 - URL : address to the search page
 - CURRENCY: 1320 is SEK
