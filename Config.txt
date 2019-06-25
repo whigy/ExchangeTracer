@@ -1,4 +1,4 @@
 URL=http://srh.bankofchina.com/search/whpj/search.jsp
 CURRENCY=1320
-START=2018-07-13
+START=AUTO
 END=TODAY

@@ -16,6 +16,7 @@ from datetime import date, timedelta, datetime
 from selenium import webdriver
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+TIME_FORMAT = "%Y-%m-%d"
 
 
 def openBrowser(url):
@@ -47,14 +48,14 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     if endTime == None:
         browser.find_element_by_name("nothing").click()
         browser.find_element_by_name("calendarToday").click()
-        endTime = date.today().strftime("%Y-%m-%d")
+        endTime = date.today().strftime(TIME_FORMAT)
     else:
         browser.find_element_by_name("nothing").click()
         clickCalendar(endTime)
 
     # Start time
     if startTime == None:  # if none: one day before end time
-        startTime = (datetime.strptime(endTime, "%Y-%m-%d") - timedelta(1)).strftime("%Y-%m-%d")
+        startTime = (datetime.strptime(endTime, TIME_FORMAT) - timedelta(1)).strftime(TIME_FORMAT)
     browser.find_element_by_name("erectDate").click()
 
     clickCalendar(startTime)
@@ -175,20 +176,53 @@ def readConfig():
         print("""
         Please create 'Congig.txt', with template:
             URL=http://srh.bankofchina.com/search/whpj/search.jsp
-            CURRENCY=瑞典克朗
+            CURRENCY=1320
             START=YESTERDAY
             END=TODAY
         """)
     if parameters["START"] == "YESTERDAY":
-        parameters["START"] = (date.today() - timedelta(1)).strftime("%Y-%m-%d")
+        parameters["START"] = (date.today() - timedelta(1)).strftime(TIME_FORMAT)
     if parameters["END"] == "TODAY":
-        parameters["END"] = date.today().strftime("%Y-%m-%d")
+        parameters["END"] = date.today().strftime(TIME_FORMAT)
+
+    return parameters
+
+def readConfig2():
+    parameters = {}
+    try:
+        with open("Config.txt", 'r') as f:
+            for line in f:
+                p = line.strip("\n").split("=")
+                parameters[p[0]] = p[1]
+
+    except Exception as e:
+        print('Unable to load Configuration!')
+        print("""
+        Please create 'Congig.txt', with template:
+            URL=http://srh.bankofchina.com/search/whpj/search.jsp
+            CURRENCY=1320
+            START=YESTERDAY
+            END=TODAY
+        """)
+            
+    try:
+        with open("output/output.txt", 'r') as f:
+            d = f.readlines()[-1].strip("\n").split(" ")
+    except Exception as e:
+        logging.info("No output data exist!")
+        d = [(date.today() - timedelta(1)).strftime(TIME_FORMAT)]
+    if parameters["START"] == "YESTERDAY":
+        parameters["START"] = (date.today() - timedelta(1)).strftime(TIME_FORMAT)
+    elif parameters["START"] == "AUTO":
+        parameters["START"] = d[0].replace("/", "-")
+    if parameters["END"] == "TODAY":
+        parameters["END"] = date.today().strftime(TIME_FORMAT)
 
     return parameters
 
 if __name__ == "__main__":
     logging.info("Start!")
-    p = readConfig()
+    p = readConfig2()
     filename = get_exchange(p["URL"], p["CURRENCY"], p["START"], p["END"])
     calculateData(filename)
     logging.info("The end of the script!")
