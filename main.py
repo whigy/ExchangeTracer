@@ -52,10 +52,12 @@ def get_exchange(url, currency, startTime=None, endTime=None):
     else:
         browser.find_element_by_name("nothing").click()
         clickCalendar(endTime)
+    logging.info("end time: {}".format(endTime))
 
     # Start time
     if startTime == None:  # if none: one day before end time
         startTime = (datetime.strptime(endTime, TIME_FORMAT) - timedelta(1)).strftime(TIME_FORMAT)
+    logging.info("start time: {}".format(startTime))
     browser.find_element_by_name("erectDate").click()
 
     clickCalendar(startTime)
@@ -129,7 +131,7 @@ def calculateData(filename, output="output/output.txt"):
     directory = 'output'
     if not os.path.exists(directory):
         os.makedirs(directory)
-    
+
     with open(filename, 'rb') as file:
         df = pd.read_csv(file)
 
@@ -159,9 +161,17 @@ def calculateData(filename, output="output/output.txt"):
     updated = pd.DataFrame.from_dict(data).T.reset_index()
     updated["date"] = updated["index"].apply(lambda x: x.replace(".", '/'))
 
+    # read existing csv
+    with open(output, 'rb') as file:
+        origin = pd.read_csv(file, " ",
+            names = ["date", "opening", "max", "min", "closing"])
+
+    origin = origin[origin["date"] < updated['date'].min()]
+    updated = origin.append(updated, ignore_index=True)
+
     updated[["date", "opening", "max", "min", "closing"]]\
-		.sort_values("date")\
-        .to_csv("output/output.txt", index=False, header=False, sep=" ")
+        .sort_values("date")\
+        .to_csv(output, index=False, header=False, sep=" ")
 
 def readConfig():
     parameters = {}
@@ -175,7 +185,7 @@ def readConfig():
         print('Unable to load Configuration!')
         print("""
         Please create 'Congig.txt', with template:
-            URL=http://srh.bankofchina.com/search/whpj/search.jsp
+            URL=http://srh.bankofchina.com/search/whpj/search_cn.jsp
             CURRENCY=1320
             START=YESTERDAY
             END=TODAY
@@ -200,13 +210,13 @@ def readConfig2():
         print("""
         Please create 'Congig.txt', with template:
             URL=http://srh.bankofchina.com/search/whpj/search.jsp
-            CURRENCY=1320
+            CURRENCY=瑞典克朗
             START=YESTERDAY
             END=TODAY
         """)
-            
+
     try:
-        with open("output/output.txt", 'r') as f:
+        with open("./output/output.txt", 'r') as f:
             d = f.readlines()[-1].strip("\n").split(" ")
     except Exception as e:
         logging.info("No output data exist!")

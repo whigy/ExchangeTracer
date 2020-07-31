@@ -1,4 +1,4 @@
-URL=http://srh.bankofchina.com/search/whpj/search.jsp
-CURRENCY=1320
+URL=http://srh.bankofchina.com/search/whpj/search_cn.jsp
+CURRENCY=瑞典克朗
 START=AUTO
 END=TODAY
