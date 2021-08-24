@@ -34,7 +34,6 @@ def download_from_gs(bucket, object_path):
 
 
 def send_email(email, file):
-    today = datetime.today().strftime("%Y%m%d")
     with open(file, 'r') as f:
         data = f.readlines()
         today = data[-1].strip("\n").split(" ")
@@ -42,7 +41,7 @@ def send_email(email, file):
 
     message = Mail(
         from_email="huijie.wang@devoteam.com",
-        to_emails=["whigy@outlook.com"],
+        to_emails=["whigy9@gmail.com"],
         subject='ExchangeTracer-{}'.format(today[0]),
         html_content='''
             <strong>BOC info</strong>\n\n
@@ -64,10 +63,7 @@ def send_email(email, file):
     with open(file, 'r') as f:
         string_csv = f.read()
 
-    with open(file, 'r') as f:
-        string_csv = f.read()
-
-    file_name = 'output-{}.txt'.format(today)
+    file_name = 'output-{}.txt'.format(today[0])
     b64data = base64.b64encode(bytes(string_csv, 'utf-8'))
     attachment = Attachment()
     attachment.file_content = FileContent(str(b64data, 'utf-8'))
@@ -90,6 +86,7 @@ def calculateData(result, output="output/output.txt"):
     # result: list: e.g. 
     #   [(1, 'SE_ASK', 'Time'), ('SEK', '80.67', '2020-07-31 20:13:26'),
     #    ('SEK', '80.67', '2020-07-31 20:13:07'), ('SEK', '80.67', '2020-07-31 20:07:58')]
+    print(result)
     df = pd.DataFrame(result[1:], columns = ['CURRENCY' , 'SE_ASK', 'TIME'])
     df = df.drop('CURRENCY', axis=1)
     df['date'] = df["TIME"].apply(lambda x: x.split(" ")[0])
