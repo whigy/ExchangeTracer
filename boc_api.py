@@ -89,6 +89,7 @@ def calculateData(result, output="output/output.txt"):
     print(result)
     df = pd.DataFrame(result[1:], columns = ['CURRENCY' , 'SE_ASK', 'TIME'])
     df = df.drop('CURRENCY', axis=1)
+    df['SE_ASK'] = 'SE_ASK'.apply(lambda x: float(x))
     df['date'] = df["TIME"].apply(lambda x: x.split(" ")[0])
     group = df.sort_values(["date", "TIME"]) \
         .groupby("date")['SE_ASK'] \
