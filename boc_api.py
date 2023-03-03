@@ -1,21 +1,20 @@
 from bocfx import bocfx
 import logging
-from datetime import date, timedelta, datetime
+from datetime import timedelta, datetime
 import pandas as pd
-import pickle
 import sys
 import os
 import base64
 
 from google.cloud import storage
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition, ContentId
+from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 TIME_FORMAT = "%Y-%m-%d"
 
 
-def upload_to_gs(bucket, object_path):
+def upload_to_gcs(bucket, object_path):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket)
     gcs_path = object_path.split("/")[-1]
@@ -33,32 +32,47 @@ def download_from_gs(bucket, object_path):
         blob.download_to_file(file_obj)
 
 
-def send_email(email, file):
+def send_email(currency, file):
+    logging.info("Sending to data to emails")
     with open(file, 'r') as f:
         data = f.readlines()
         today = data[-1].strip("\n").split(" ")
         yesterday = data[-2].strip("\n").split(" ")
 
     message = Mail(
-        from_email="huijie.wang@devoteam.com",
-        to_emails=["whigy9@gmail.com"],
+        from_email=os.environ.get('EMAIL_FROM'),
+        to_emails=os.environ.get('EMAILS_TO').split(","),
         subject='ExchangeTracer-{}'.format(today[0]),
-        html_content='''
-            <strong>BOC info</strong>\n\n
-            <i>Yesterday (full data): {}</i>\n\n
-            <i>Opening: {}</i>\n\n
-            <i>Max: {}</i>\n\n
-            <i>Min: {}</i>\n\n
-            <i>Closing: {}</i>\n\n\n\n
-            <i>Today(Newest): {}</i>\n\n
-            <i>Opening: {}</i>\n\n
-            <i>Max: {}</i>\n\n
-            <i>Min: {}</i>\n\n
-            <i>Closing: {}</i>'''.format(
-                yesterday[0], yesterday[1], yesterday[2], yesterday[3], yesterday[4],
-                today[0], today[1], today[2], today[3], today[4]
-        )
+        html_content =f'''
+            <strong>BOC info {currency}</strong>
+            <i>Yesterday (full data): {yesterday[0]} </i>
+            <i>Opening: {yesterday[1]} </i>
+            <i>Max: {yesterday[2]} </i>
+            <i>Min: {yesterday[3]} </i>
+            <i>Closing: {yesterday[4]} </i>
+            <i>Today(Newest): {today[0]} </i>
+            <i>Opening: {today[1]} </i>
+            <i>Max: {today[2]} </i>
+            <i>Min: {today[3]} </i>
+            <i>Closing: {today[4]} </i>
+        '''
     )
+    if os.environ.get('TEMPLATE_ID') is not None:
+
+        message.dynamic_template_data = {
+            "subject": f'ExchangeTracer-{today[0]}-{currency}',
+            "date": today[0],
+            "y_date": yesterday[0],
+            "y_open": yesterday[1],
+            "y_max": yesterday[2],
+            "y_min": yesterday[3],
+            "y_close": yesterday[4],
+            "t_open": today[1],
+            "t_max": today[2],
+            "t_min": today[3],
+            "t_close": today[4]
+        }
+        message.template_id = os.environ.get('TEMPLATE_ID')
 
     with open(file, 'r') as f:
         string_csv = f.read()
@@ -73,23 +87,22 @@ def send_email(email, file):
     try:
         sendgrid_client = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
         response = sendgrid_client.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
+        # logging.info(response.status_code)
+        logging.error(f"Email sent: {response.body}")
     except Exception as e:
-        print(e)
-
-    print('Done')
+        logging.error(f"Sending email failed: {e}")
 
 
 def calculateData(result, output="output/output.txt"):
     # result: list: e.g. 
-    #   [(1, 'SE_ASK', 'Time'), ('SEK', '80.67', '2020-07-31 20:13:26'),
-    #    ('SEK', '80.67', '2020-07-31 20:13:07'), ('SEK', '80.67', '2020-07-31 20:07:58')]
-    print(result)
+    #   [(1, 'SE_ASK', 'Time'),
+    #    ('SEK', '74.02\r\n                ', '2020-07-31 20:13:07\r\n                '),
+    #    ('SEK', '80.67\r\n                ', '2020-07-31 20:07:58\r\n                ')]
+    print("Sample results")
+    print(result[:4])
     df = pd.DataFrame(result[1:], columns = ['CURRENCY' , 'SE_ASK', 'TIME'])
     df = df.drop('CURRENCY', axis=1)
-    df['SE_ASK'] = 'SE_ASK'.apply(lambda x: float(x))
+    df['SE_ASK'] = df['SE_ASK'].apply(lambda x: float(x))
     df['date'] = df["TIME"].apply(lambda x: x.split(" ")[0])
     group = df.sort_values(["date", "TIME"]) \
         .groupby("date")['SE_ASK'] \
@@ -161,8 +174,11 @@ def main(event=None, callback=None):
     r = bocfx(p["CURRENCY"], 'SE,ASK', time=p["TIME"])
     calculateData(r, p["OUTPUT"])
     if p["BUCKET"] != '':
-        upload_to_gs(p["BUCKET"], p["OUTPUT"])
-    send_email(p['EMAIL'], p['OUTPUT'])
+        logging.info(f"Uploading the data to GCS bucket {p['BUCKET']}")
+        upload_to_gcs(p["BUCKET"], p["OUTPUT"])
+
+    if os.environ.get('SENDGRID_API_KEY') is not None:
+        send_email(p['CURRENCY'], p['OUTPUT'])
     logging.info("The end of the script!")
 
 

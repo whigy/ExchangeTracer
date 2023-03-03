@@ -3,4 +3,12 @@
 *.json
 *.csv
 *.pkl
+.env
+cred
 venv/*
+**/*/.DS_Store
+.DS_Store
+
+output/*
+archive/output/*
+archive/meta/*

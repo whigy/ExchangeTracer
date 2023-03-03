@@ -1,0 +1,11 @@
+version: "3"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./output:/app/output
+      - ./bocfx.config:/app/bocfx.config
+    env_file:
+      - .env
