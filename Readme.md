@@ -74,3 +74,5 @@ export TEMPLATE_ID=<xxxx>
 
 python boc_api.py
 ```
+
+### Note: there seems to be a bug where quering multiple days some data got missing

@@ -98,29 +98,32 @@ def calculateData(result, output="output/output.txt"):
     #   [(1, 'SE_ASK', 'Time'),
     #    ('SEK', '74.02\r\n                ', '2020-07-31 20:13:07\r\n                '),
     #    ('SEK', '80.67\r\n                ', '2020-07-31 20:07:58\r\n                ')]
-    print("Sample results")
+    print("#### Sample results ####")
     print(result[:4])
     df = pd.DataFrame(result[1:], columns = ['CURRENCY' , 'SE_ASK', 'TIME'])
     df = df.drop('CURRENCY', axis=1)
     df['SE_ASK'] = df['SE_ASK'].apply(lambda x: float(x))
     df['date'] = df["TIME"].apply(lambda x: x.split(" ")[0])
+
+    print("#### Fetched dates: ####")
+    print(df.sort_values("date")["date"].unique())
     group = df.sort_values(["date", "TIME"]) \
         .groupby("date")['SE_ASK'] \
-        .aggregate({'opening': lambda x: x.iloc[0],
-                    'max': 'max',
-                    'min': 'min',
-                    'closing': lambda x: x.iloc[-1]})
+        .agg(opening=lambda x: x.iloc[0], max ='max',min='min', closing=lambda x: x.iloc[-1])
 
     reshape = group.reset_index()
     reshape["date"] = reshape["date"].apply(lambda x: x.replace("-", '/'))
 
+    print("#### Fetched dates ####:")
+    print(reshape)
+
     # read existing csv
     with open(output, 'rb') as file:
-        origin = pd.read_csv(file, " ",
+        origin = pd.read_csv(file, sep=" ",
             names=["date", "opening", "max", "min", "closing"])
 
     origin = origin[origin["date"] < reshape['date'].min()]
-    updated = origin.append(reshape, ignore_index=True)
+    updated = pd.concat([origin, reshape], ignore_index=True)
 
     logging.info("Update to file: {}".format(output))
     updated[["date", "opening", "max", "min", "closing"]]\
