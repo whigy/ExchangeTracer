@@ -4,6 +4,7 @@
 *.csv
 *.pkl
 .env
+cronschedule
 cred
 venv/*
 **/*/.DS_Store

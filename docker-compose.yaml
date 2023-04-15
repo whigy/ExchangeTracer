@@ -3,9 +3,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.cron
     volumes:
       - ./output:/app/output
       - ./bocfx.config:/app/bocfx.config
-    env_file:
-      - .env
+    restart: unless-stopped

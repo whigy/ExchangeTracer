@@ -1,0 +1,20 @@
+FROM python:3.8-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install -y cron \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /etc/cron.*/*
+
+COPY boc_api.py .
+COPY cronschedule /etc/cron.d/boc-cron
+
+# Give execution rights on the cron job
+RUN chmod 0644 /etc/cron.d/boc-cron
+
+ENTRYPOINT [ "cron", "-f" ]
